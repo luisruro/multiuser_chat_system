@@ -1,0 +1,17 @@
+[project]
+name = "multiuser_chat_system"
+version = "0.1.0"
+description = "Multi-user chat system powered by LLMs, orchestrated with LangGraph for conversational workflows with memory."
+readme = "README.md"
+requires-python = ">=3.11"
+
+dependencies = [
+    "langchain",
+    "langchain-openai",
+    "langchain-community",
+    "python-dotenv",
+    "streamlit",
+    "langchain-classic",
+    "pydantic",
+    "pyPDF2"
+]
