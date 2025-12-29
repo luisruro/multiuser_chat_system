@@ -12,6 +12,7 @@ os.makedirs(USERS_DIR, exist_ok=True)
 # Model set up
 DEFAULT_MODEL = "gpt-4o-mini"
 DEFAULT_TEMPERATURE = 0.3
+EMBEDDING_MODEL = "text-embedding-3-large"
 
 # Memory set up
 MAX_VECTOR_RESULTS = 3
