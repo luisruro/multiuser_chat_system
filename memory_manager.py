@@ -203,3 +203,71 @@ class ModernMemoryManager:
         except Exception as e:
           print(f'Error generating title {e}')
           return first_message[:30] + "..." if len(first_message) > 30 else first_message
+      
+    # ===Vector Memory===
+    
+    def save_vector_memory(self, text: str, metadata: Optional[Dict] = None):
+        """Save information in vector memory"""
+        
+        if not self.collection:
+            return ""
+        
+        try:
+            memory_id = str(uuid.uuid4())
+            doc_metadata = metadata or {}
+            doc_metadata.update({
+                "user_id": self.user_id,
+                "timestamp": datetime.now().isoformat(),
+                "memory_id": memory_id
+            })
+            
+            self.collection.add(
+                documents=[text],
+                ids=[memory_id],
+                metadatas=[doc_metadata]
+            )
+            
+            return memory_id
+        except Exception as e:
+          print(f'Error saving vector memory {e}')
+          return ''
+      
+    def search_vector_memory(self, query:str, k: int = MAX_VECTOR_RESULTS):
+        """Search relevant information in vector memory"""
+        if not self.collection:
+            return []
+        
+        try:
+            results = self.collection.query(
+                query_texts=[query],
+                n_results=k
+            )
+            
+            return results['documents'][0] if results['documents'] else []
+        except Exception as e:
+          print(f'Error searching in the vector memory')
+          return []
+      
+    def get_all_vector_memories(self):
+        """Get all user vector memories"""
+        if not self.collection:
+            return []
+        
+        try:
+            results = self.collection.get()
+            memories = []
+            
+            if results['documents']:
+                for i, doc in enumerate(results['documents']):
+                    memory = {
+                        'id': results['ids'][i],
+                        'content': doc,
+                        'metadata': results['metadatas'][i] if results['metadatas'] else {}
+                    }
+                    memories.append(memory)
+                    
+            return memories
+        
+        except Exception as e:
+          print(f'Error getting vector memories {e}')
+          return []
