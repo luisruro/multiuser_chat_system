@@ -271,3 +271,48 @@ class ModernMemoryManager:
         except Exception as e:
           print(f'Error getting vector memories {e}')
           return []
+    
+    # ====Smart Extraction===
+    
+    def extract_and_store_memories(self, user_message: str):
+        """Extract and store memories using LLM"""
+        if not self.extraction_chain:
+            return self._extract_memories_manual(user_message)
+        
+        try:
+            extracted_memory = self.extraction_chain.invoke({
+                "user_message": user_message
+            })
+            
+            if extracted_memory.category != "none" and extracted_memory.importance >= 2:
+                memory_id = self.save_vector_memory(
+                    extracted_memory.content,
+                    {
+                        'category': extracted_memory.category,
+                        'importance': extracted_memory.importance,
+                        'original_message': user_message[:200]
+                    }
+                )
+                return bool(memory_id)
+            return False
+        except Exception as e:
+          print(f'Error in automatic extraction: {e}')
+          return self._extract_memories_manual(user_message)
+        
+    def _extract_memories_manual(self, user_message: str) -> bool:
+        """Método manual de extracción (fallback)"""
+        message_lower = user_message.lower()
+        
+        memory_rules = [
+            (["me llamo", "mi nombre es", "soy"], "personal", f"Personal info: {user_message}"),
+            (["trabajo en", "trabajo como", "mi profesión"], "professional", f"professional info: {user_message}"),
+            (["me gusta", "me encanta", "prefiero", "odio"], "preferences", f"Preference: {user_message}"),
+            (["importante", "recuerda que", "no olvides"], "important_facts", f"Important fact: {user_message}")
+        ]
+        
+        for phrases, category, memory_text in memory_rules:
+            if any(phrase in message_lower for phrase in phrases):
+                memory_id = self.save_vector_memory(memory_text, {'category': category})
+                return bool(memory_id)
+        
+        return False
