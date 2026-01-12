@@ -12,6 +12,7 @@ dependencies = [
     "langchain-community",
     "langchain-classic",
     "langchain-chroma",
+    "langgraph-checkpoint-sqlite",
     "chromadb",
     "python-dotenv",
     "streamlit",

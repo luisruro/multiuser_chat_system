@@ -15,6 +15,9 @@ from pydantic import BaseModel, Field
 from config import USERS_DIR, MAX_VECTOR_RESULTS, EMBEDDING_MODEL, DEFAULT_MODEL
 from prompts import PROMPT_TEMPLATE, TITLE_PROMPT
 
+from dotenv import load_dotenv
+load_dotenv()
+
 # Extended state that combines messages with vector memory
 class MemoryState(TypedDict):
     """State that combines LangGraph messages with vector memory."""
@@ -52,7 +55,10 @@ class ModernMemoryManager:
         try:
             self.vectorstore = Chroma(
                 collection_name=f"memory_{self.user_id}",
-                embedding_function=OpenAIEmbeddings(model=EMBEDDING_MODEL),
+                embedding_function=OpenAIEmbeddings(
+                    model=EMBEDDING_MODEL,
+                    api_key=os.getenv("OPENAI_API_KEY")
+                ),
                 persist_directory=self.chromadb_path
             )
             
@@ -70,7 +76,11 @@ class ModernMemoryManager:
     def _init_extraction_system(self):
         """Initializes smart transversal memory extraction system"""
         try:
-            self.extraction_llm = ChatOpenAI(model=DEFAULT_MODEL, temperature=0)
+            self.extraction_llm = ChatOpenAI(
+                model=DEFAULT_MODEL, 
+                temperature=0,
+                api_key=os.getenv("OPENAI_API_KEY")
+            )
             self.memory_parser = PydanticOutputParser(pydantic_object=ExtractedMemory)
             
             self.extraction_template = PromptTemplate(
