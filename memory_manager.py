@@ -316,3 +316,38 @@ class ModernMemoryManager:
                 return bool(memory_id)
         
         return False
+    
+    
+class UserManager:
+    """Simplified user manager"""
+    
+    @staticmethod
+    def get_users():
+        """Get a list of existing users"""
+        if not os.path.exists(USERS_DIR):
+            return []
+        
+        users = []
+        for item in os.listdir(USERS_DIR):
+            user_path = os.path.join(USERS_DIR, item)
+            if os.path.isdir(user_path):
+                users.append(item)
+                
+        return sorted(users)
+    
+    @staticmethod
+    def user_exists(user_id):
+        """Verify if a user exists"""
+        user_path = os.path.join(USERS_DIR, user_id)
+        return os.path.exists(user_path)
+    
+    @staticmethod
+    def create_user(user_id):
+        """Create a new user"""
+        try:
+            user_path = os.path.join(USERS_DIR, user_id)
+            os.makedirs(user_path, exist_ok=True)
+            return True
+        except Exception as e:
+          print(f'Error creating user {e}')
+          return False
