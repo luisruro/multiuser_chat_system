@@ -1,5 +1,5 @@
 from typing import List, Dict, Any
-from langgraph.graph import StateGraph, START
+from langgraph.graph import StateGraph, START, END
 import sqlite3
 from langgraph.checkpoint.sqlite import SqliteSaver
 from langchain_core.messages import HumanMessage, AIMessage, trim_messages
@@ -40,3 +40,115 @@ class ModernChatbot:
         
         # Create LangGraph application
         self.app = self._create_app()
+        
+    def _create_app(self):
+        """Create LangGraph with extended state."""
+        workflow = StateGraph(state_schema=MemoryState)
+        
+        def memory_retrieval_node(state):
+            """Node that retrieves relevant memories."""
+            messages = state['messages']
+            
+            if not messages:
+                return {"vector_memories": []}
+            
+            # Get the last user message
+            last_user_message = None
+            for msg in reversed(messages):
+                if isinstance(msg, HumanMessage):
+                    last_user_message = msg
+                    break
+                
+            if not last_user_message:
+                return {"vector_memories": []}
+            
+            # Search vector relevant memories
+            relevant_memories = self.memory_manager.search_vector_memory(
+                last_user_message.content
+            )
+            
+            return {"vector_memories": relevant_memories}
+        
+        def context_optimization_node(state):
+            """Node that optimizes the context using  trim_messages"""
+            messages = state['messages']
+            
+            # Applying smart trimming
+            trimmed_messages = self.message_trimer.invoke(messages)
+            
+            return {"messages": trimmed_messages}
+        
+        def response_generation_node(state):
+            """Node that generates the answer using the optimized context"""
+            messages = state['messages']
+            vector_memories = state.get('vector_memories', [])
+            
+            if not messages:
+                return {"messages": []}
+            
+            #Build context with vector memories
+            if vector_memories:
+                context_parts = ["Relevant user information:"]
+                for memory in vector_memories:
+                    context_parts.append(f"- {memory}")
+                context = "\n".join(context_parts)
+            else:
+                context = "There is no relavant prior information"
+            
+            # Create prompt with the dinamyc context
+            prompt = ChatPromptTemplate.from_messages([
+                ("system", self.system_template.format(context=context)),
+                MessagesPlaceholder(variable_name="messages")
+            ])
+            
+            #Generate the response
+            chain = prompt | self.llm
+            response = chain.invoke({"messages": messages})
+            
+            return {"messages": response}
+        
+        def memory_extraction_node(state):
+            "Extract and save new vector memories"
+            messages = state['messages']
+            last_extraction = state.get('last_memory_extraction')
+            
+            #Get the last user message
+            last_user_message = None
+            for msg in reversed(messages):
+                if isinstance(msg, HumanMessage):
+                    last_user_message = msg
+                    break
+            
+            if not last_user_message:
+                return {}
+            
+            # Only process if we have not extracted any memories from this message
+            if last_extraction != last_user_message.content:
+                self.memory_manager.extract_and_store_memories(last_user_message.content)
+                return {"last_memory_extraction": last_user_message.content}
+            
+            return {}
+        
+        # Setting up the Graph
+        workflow.add_node("memory_retrieval", memory_retrieval_node)
+        workflow.add_node("context_optimization", context_optimization_node)
+        workflow.add_node("response_generation", response_generation_node)
+        workflow.add_node("memory_extraction", memory_extraction_node)
+        
+        # Define the graph flow
+        workflow.add_edge(START, "memory_retrieval")
+        workflow.add_edge("memory_retrieval", "context_optimization")
+        workflow.add_edge("context_optimization", "response_generation")
+        workflow.add_edge("response_generation", "memory_extraction")
+        workflow.add_edge("memory_extraction", END)
+        
+        # Setting persistence with Sqliteserver
+        db_path = os.path.join(
+            self.memory_manager.user_dir,
+            "langgraph_memory.db"
+        )
+        
+        conn = sqlite3.connect(db_path, check_same_thread=False)
+        checkpointer = SqliteSaver(conn)
+        
+        return workflow.compile(checkpointer=checkpointer)
