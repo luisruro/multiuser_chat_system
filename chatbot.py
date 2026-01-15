@@ -152,3 +152,41 @@ class ModernChatbot:
         checkpointer = SqliteSaver(conn)
         
         return workflow.compile(checkpointer=checkpointer)
+    
+    def chat(self, message: str, chat_id: str = "default"):
+        """send a message and get chatbot response"""
+        try:
+            #Setting specific chat thread
+            config = {"configurable": {"thread_id": f"user_{self.user_id}_chat_{chat_id}"}}
+            
+            # Update the title if it is necessary
+            chat_info = self.memory_manager.get_chat_info(chat_id)
+            if chat_info["title"] == "Nuevo chat":
+                chat_title = self.memory_manager._generate_chat_title(message)
+                self.memory_manager.update_chat_metadata(chat_id, chat_title)
+                
+                #Invoke chatbot with the new message
+                result = self.app.invoke(
+                    {"messages": [HumanMessage(content=message)]},
+                    config
+                )
+                
+                # Extract the answer
+                assistant_response = result["messages"][-1].content
+                
+                return {
+                    "success": True,
+                    "response": assistant_response,
+                    "error": None,
+                    "memories_used" : len(result.get("vector_memories", [])),
+                    "context_optimized": True
+                }
+
+        except Exception as e:
+            return {
+                    "success": False,
+                    "response": None,
+                    "error": str(e),
+                    "memories_used" : 0,
+                    "context_optimized": False
+                }
