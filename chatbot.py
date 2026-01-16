@@ -190,3 +190,65 @@ class ModernChatbot:
                     "memories_used" : 0,
                     "context_optimized": False
                 }
+            
+    def get_convbersation_history(self, chat_id: str = "default", limit: int = 50):
+        """Get the conversation history using LangGraph state"""
+        try:
+            config = {"configurable": {"thread_id": f"user_{self.user_id}_chat_{chat_id}"}}
+            
+            #Get current state
+            state = self.app.get_state(config)
+            
+            if not state.values or 'messages' not in state.values:
+                return []
+            
+            messages = state.values["messages"]
+            
+            # UI format
+            history = []
+            for msg in messages[-limit]:
+                if isinstance(msg, (HumanMessage, AIMessage)):
+                    history.append({
+                        'role': 'user' if isinstance(msg, HumanMessage) else 'assistant',
+                        'content': msg.content,
+                        'timestamp': getattr(msg, 'timestamp', None) or "2026-01-01T00:00:00"
+                    })
+            return history
+            
+        except Exception as e:
+          print(f'Error getting history: {e}')
+          return []
+    
+    def clear_conversation(self, chat_id: str = "default") -> bool:
+        """Clean the conversation history"""
+        try:
+            config = {"configurable": {"thread_id": f"user_{self.user_id}_chat_{chat_id}"}}
+            
+            #Create a void state to restart the conversation
+            self.app.invoke({"messages": []}, config)
+            return True
+        
+        except Exception as e:
+          print(f'Error cleaning the conversation {e}')
+          return False
+      
+    def delete_chat_from_langgraph(self, chat_id: str) -> bool :
+        """Delete a specific chat from LangGraph"""
+        try:
+            thread_id = f"user_{self.user_id}_chat_{chat_id}"
+            
+            #Create a void state to clean the thread
+            config = {"configurable": {"thread_id": thread_id}}
+            
+            #Get current state to very if exists
+            try:
+                current_state = self.app.get_state(config)
+                if not current_state.values:
+                    return True # It does not exist
+            except:
+              return True 
+          
+            return True
+        except Exception as e:
+          print(f'Error deleting chat from LangGraph: {e}') 
+          return False
