@@ -160,26 +160,26 @@ class ModernChatbot:
             
             # Update the title if it is necessary
             chat_info = self.memory_manager.get_chat_info(chat_id)
-            if chat_info["title"] == "Nuevo chat":
+            if chat_info["title"] == "New chat":
                 chat_title = self.memory_manager._generate_chat_title(message)
                 self.memory_manager.update_chat_metadata(chat_id, chat_title)
                 
-                #Invoke chatbot with the new message
-                result = self.app.invoke(
-                    {"messages": [HumanMessage(content=message)]},
-                    config
-                )
-                
-                # Extract the answer
-                assistant_response = result["messages"][-1].content
-                
-                return {
-                    "success": True,
-                    "response": assistant_response,
-                    "error": None,
-                    "memories_used" : len(result.get("vector_memories", [])),
-                    "context_optimized": True
-                }
+            #Invoke chatbot with the new message
+            result = self.app.invoke(
+                {"messages": [HumanMessage(content=message)]},
+                config
+            )
+            
+            # Extract the answer
+            assistant_response = result["messages"][-1].content
+            
+            return {
+                "success": True,
+                "response": assistant_response,
+                "error": None,
+                "memories_used" : len(result.get("vector_memories", [])),
+                "context_optimized": True
+            }
 
         except Exception as e:
             return {
@@ -190,7 +190,7 @@ class ModernChatbot:
                     "context_optimized": False
                 }
             
-    def get_convbersation_history(self, chat_id: str = "default", limit: int = 50):
+    def get_conversation_history(self, chat_id: str = "default", limit: int = 50):
         """Get the conversation history using LangGraph state"""
         try:
             config = {"configurable": {"thread_id": f"user_{self.user_id}_chat_{chat_id}"}}
@@ -205,7 +205,7 @@ class ModernChatbot:
             
             # UI format
             history = []
-            for msg in messages[-limit]:
+            for msg in messages[-limit:]:
                 if isinstance(msg, (HumanMessage, AIMessage)):
                     history.append({
                         'role': 'user' if isinstance(msg, HumanMessage) else 'assistant',

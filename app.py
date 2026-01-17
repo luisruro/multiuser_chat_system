@@ -93,7 +93,7 @@ def chat_history_sidebar():
     memory_manager = st.session_state.memory_manager
     
     # Button for new chat
-    if st.sidebar.button("➕ New Chat", type="primary", use_container_width=True):
+    if st.sidebar.button("➕ New chat", type="primary", use_container_width=True):
         # Create a new empty chat
         new_chat_id = memory_manager.create_new_chat()
         st.session_state.current_chat = new_chat_id
