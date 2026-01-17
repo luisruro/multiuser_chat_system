@@ -1,4 +1,3 @@
-from typing import List, Dict, Any
 from langgraph.graph import StateGraph, START, END
 import sqlite3
 from langgraph.checkpoint.sqlite import SqliteSaver
@@ -252,3 +251,27 @@ class ModernChatbot:
         except Exception as e:
           print(f'Error deleting chat from LangGraph: {e}') 
           return False
+      
+class ChatbotManager:
+    
+    _instances = {}
+    
+    @classmethod
+    def get_chatbot(cls, user_id):
+        """Get or create a chatbot instance for a user"""
+        if user_id not in cls._instances:
+            cls._instances[user_id] = ModernChatbot(user_id)
+            
+        return cls._instances[user_id]
+    
+    @classmethod
+    def remove_chatbot(cls, user_id):
+        """Delete a chatbot instance"""
+        if user_id in cls._instances:
+            del cls._instances[user_id]
+    
+    @classmethod
+    def clear_all(cls):
+        """Clean all chatbot instances"""
+        cls._instances.clear()
+        
