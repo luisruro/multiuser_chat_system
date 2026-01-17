@@ -109,7 +109,7 @@ class ModernMemoryManager:
                 chats_data = json.load(f)
                 
             # Order by last update
-            chats_data.sort(key=lambda x: x.get('updated_at', ''), reversed=True)
+            chats_data.sort(key=lambda x: x.get('updated_at', ''), reverse=True)
             return chats_data
         except Exception as e:
           print(f'Error getting chats: {e}')
