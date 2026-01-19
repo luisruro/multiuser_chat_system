@@ -65,7 +65,7 @@ The app requires an OpenAI-compatible API key.
 Create a `.env` file in the project root with:
 
 ```bash
-API_KEY=your_api_key_here
+OPENAI_API_KEY=your_api_key_here
 ```
 ---
 
